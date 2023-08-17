@@ -18,10 +18,13 @@ export class AppController {
     @Param('quantity', ParseIntPipe) quantity: number,
     @Param('needsLoading', ParseBoolPipe) needsLoading: boolean,
     @Param('carType') carType: string,
-  ): Promise<number> {
+  ): Promise<string> {
     if (zipNumber.startsWith('1')) {
-      const budapestFee = this.appService.getFeeToBudapest(quantity, carType);
-      return budapestFee;
+      const budapestFee = await this.appService.getFeeToBudapest(
+        quantity,
+        carType,
+      );
+      return `Looks like you are going to Budapest! Price will be ${budapestFee}`;
     }
 
     const distanceMeters =
@@ -48,8 +51,15 @@ export class AppController {
 
     // if zip is between certain numbers, take routing to M0
 
-    // add error handling
+    const result = `Hi Andris!\n 
+    Here comes some info for you.\n
+    Distance: ${distanceKms}\n
+    Total price per kms (considering loading): ${totalPricePerKm}\n
+    Transfer price: ${transferPrice}\n
+    Pallet price: ${palletPrice}\n
+    Total price (pallet + transfer): ${totalPrice}\n
+    `;
 
-    return totalPrice;
+    return result;
   }
 }
