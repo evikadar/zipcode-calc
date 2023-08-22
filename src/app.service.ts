@@ -64,7 +64,7 @@ export class AppService {
     quantity: number,
     needsLoading: boolean,
   ): Promise<number> {
-    if (!needsLoading) {
+    if (!needsLoading && quantity <= 120) {
       console.log('no loading fee');
       return 0;
     } else {
