@@ -129,4 +129,20 @@ export class AppService {
     const distanceKms = Math.floor(distanceMeters / 1000) * 2;
     return distanceKms;
   }
+
+  async getHtml(data: string): Promise<string> {
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>Grass Transfer Price Calculation</title>
+      </head>
+      <body>
+          <h1>Let's calculate prices!</h1>
+          ${data}
+      </body>
+      </html>
+    `;
+    return htmlContent;
+  }
 }

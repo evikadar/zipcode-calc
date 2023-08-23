@@ -48,7 +48,15 @@ export class AppController {
           carType,
           palletPrice,
         );
-      return res.json(budapestTransferData);
+      const data = `
+        <p>Looks like we are going to Budapest with fixed prices.</p>
+        <p>Quantity: ${budapestTransferData.quantity}</p>
+        <p>Transfer price: ${budapestTransferData.transfer}</p>
+        <p>Pallet price: ${budapestTransferData.palletPrice}</p>
+        <p>Total: ${budapestTransferData.totalPrice}</p>
+        `;
+      const response = await this.appService.getHtml(data);
+      return res.type('text/html').send(response);
     }
 
     const distanceKms = await this.appService.calculateDistance(zipNumber);
@@ -64,18 +72,15 @@ export class AppController {
 
     const totalPrice = palletPrice + transferPrice;
 
-    const result = [
-      {
-        distanceInKilometers: distanceKms,
-        basePricePerKilometer: basePricePerKm,
-        loadingPricePerKilometer: loadingPricePerKm,
-        totalPricePerKilometer: totalPricePerKm,
-        transferPrice: transferPrice,
-        palletPrice: palletPrice,
-        totalPrice: totalPrice,
-      },
-    ];
+    const dynamicData = `<p>Distance in kilometers: ${distanceKms}</p>
+    <p>Base price per kilometer: ${basePricePerKm}</p>
+    <p>Loading price per kilometer: ${loadingPricePerKm}</p>
+    <p>Total price per kilometer: ${totalPricePerKm}</p>
+    <p>Transfer price: ${transferPrice}</p>
+    <p>Pallet price: ${palletPrice}</p>
+    <p>Total price: ${totalPrice}</p>`;
 
-    return res.json(result);
+    const response = await this.appService.getHtml(dynamicData);
+    return res.type('text/html').send(response);
   }
 }
