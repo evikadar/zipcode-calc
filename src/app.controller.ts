@@ -1,39 +1,59 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  ParseIntPipe,
+  Res,
+} from '@nestjs/common';
 import { AppService } from './app.service';
-import { RouteInterface } from './route.interface';
 import { ParseBoolPipe } from './parse-bool.pipe';
+import { hungarianZips } from './util/hungarianZips';
+import { agglomerationZips } from './util/budapest.agglomeration';
+import { Response } from 'express';
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Get('/zip/:zipNumber')
-  async getZip(@Param() params: any): Promise<RouteInterface> {
-    return this.appService.findDistanceTo(params.zipNumber);
-  }
-
   @Get('/zip/:zipNumber/:quantity/:needsLoading/:carType')
   async calculatePrice(
-    @Param('zipNumber') zipNumber: string,
+    @Param('zipNumber', ParseIntPipe) zipNumber: number,
     @Param('quantity', ParseIntPipe) quantity: number,
     @Param('needsLoading', ParseBoolPipe) needsLoading: boolean,
     @Param('carType') carType: string,
-  ): Promise<string> {
-    if (zipNumber.startsWith('1')) {
-      const budapestFee = await this.appService.getFeeToBudapest(
-        quantity,
-        carType,
+    @Res() res: Response,
+  ): Promise<Response> {
+    // check if zip is valid, if not, throw 404
+    // TODO: if we know the params, let's add more error handling!
+    if (!hungarianZips.includes(zipNumber)) {
+      throw new NotFoundException(
+        'The zipnumber you provided is not a valid Hungarian ZIP code.',
       );
-      return `Looks like you are going to Budapest! Price will be ${budapestFee}`;
     }
 
-    const distanceMeters =
-      (await this.appService.findDistanceTo(zipNumber)).routes[0]
-        .distanceMeters + 5;
-    const distanceKms = Math.floor(distanceMeters / 1000);
+    const palletPrice = await this.appService.getPalletPrice(
+      quantity,
+      needsLoading,
+    );
+
+    // if the transfer is to Budapest or nearby, use fixed prices
+    const transferIsToBudapest =
+      zipNumber.toString().startsWith('1') ||
+      agglomerationZips.includes(zipNumber);
+    if (transferIsToBudapest) {
+      const budapestTransferData =
+        await this.appService.getTransferDataToBudapest(
+          quantity,
+          carType,
+          palletPrice,
+        );
+      return res.json(budapestTransferData);
+    }
+
+    const distanceKms = await this.appService.calculateDistance(zipNumber);
 
     const basePricePerKm = 350;
-
     const loadingPricePerKm = await this.appService.getLoadingPricePerKm(
       quantity,
       needsLoading,
@@ -42,24 +62,20 @@ export class AppController {
     const totalPricePerKm = basePricePerKm + loadingPricePerKm;
     const transferPrice = totalPricePerKm * distanceKms;
 
-    const palletPrice = await this.appService.getPalletPrice(
-      quantity,
-      needsLoading,
-    );
-
     const totalPrice = palletPrice + transferPrice;
 
-    // if zip is between certain numbers, take routing to M0
+    const result = [
+      {
+        distanceInKilometers: distanceKms,
+        basePricePerKilometer: basePricePerKm,
+        loadingPricePerKilometer: loadingPricePerKm,
+        totalPricePerKilometer: totalPricePerKm,
+        transferPrice: transferPrice,
+        palletPrice: palletPrice,
+        totalPrice: totalPrice,
+      },
+    ];
 
-    const result = `Hi Andris!\n 
-    Here comes some info for you.\n
-    Distance: ${distanceKms}\n
-    Total price per kms (considering loading): ${totalPricePerKm}\n
-    Transfer price: ${transferPrice}\n
-    Pallet price: ${palletPrice}\n
-    Total price (pallet + transfer): ${totalPrice}\n
-    `;
-
-    return result;
+    return res.json(result);
   }
 }

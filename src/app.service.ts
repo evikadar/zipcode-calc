@@ -4,7 +4,8 @@ import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
 import { RouteInterface } from './route.interface';
 import { ConfigService } from '@nestjs/config';
-import { priceList } from './budapest.prices';
+import { priceList } from './util/budapest.prices';
+import { m0Zips } from './util/budapest.agglomeration';
 
 @Injectable()
 export class AppService {
@@ -14,7 +15,7 @@ export class AppService {
     private configService: ConfigService,
   ) {}
 
-  async findDistanceTo(zipCode: string): Promise<RouteInterface> {
+  async findDistanceTo(zipCode: number): Promise<RouteInterface> {
     const googleRouteApiKey =
       this.configService.get<string>('GOOGLE_ROUTE_API');
     const { data } = await firstValueFrom(
@@ -26,7 +27,7 @@ export class AppService {
               address: '6088 Magyarország',
             },
             destination: {
-              address: `${zipCode} Magyarország`,
+              address: `${zipCode.toString()} Magyarország`,
             },
           },
         )
@@ -45,7 +46,6 @@ export class AppService {
     needsLoading: boolean,
   ): Promise<number> {
     const pricePerPallet = 3300;
-    const tax = 1.27;
     if (quantity <= 120 && needsLoading === false) {
       return 0;
     } else {
@@ -55,8 +55,7 @@ export class AppService {
       } else {
         nrOfPalletts = Math.ceil((quantity - 10) / 50);
       }
-      console.log(`For ${quantity} m2 you will need ${nrOfPalletts} pallets.`);
-      return nrOfPalletts * pricePerPallet * tax;
+      return nrOfPalletts * pricePerPallet;
     }
   }
 
@@ -69,7 +68,6 @@ export class AppService {
       return 0;
     } else {
       const loadingPerKm = quantity <= 400 ? 280 : 340;
-      console.log(`loading price is ${loadingPerKm}`);
       return loadingPerKm;
     }
   }
@@ -97,5 +95,38 @@ export class AppService {
     }
 
     return upperValues[selectedUpper] || 0;
+  }
+
+  async getTransferDataToBudapest(
+    quantity: number,
+    carType: string,
+    palletPrice: number,
+  ): Promise<{
+    quantity: number;
+    transfer: number;
+    palletPrice: number;
+    totalPrice: number;
+  }> {
+    const budapestFee = await this.getFeeToBudapest(quantity, carType);
+    const totalPrice = budapestFee + palletPrice;
+    const result = {
+      quantity,
+      transfer: budapestFee,
+      palletPrice,
+      totalPrice,
+    };
+    return { ...result };
+  }
+
+  async calculateDistance(zipNumber: number): Promise<number> {
+    if (m0Zips.hasOwnProperty(zipNumber)) {
+      const distanceInKilometers = m0Zips[zipNumber];
+      return distanceInKilometers;
+    }
+
+    const distanceMeters =
+      (await this.findDistanceTo(zipNumber)).routes[0].distanceMeters + 5;
+    const distanceKms = Math.floor(distanceMeters / 1000) * 2;
+    return distanceKms;
   }
 }
