@@ -1,16 +1,10 @@
-import {
-  Controller,
-  Get,
-  NotFoundException,
-  Param,
-  ParseIntPipe,
-  Res,
-} from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ParseBoolPipe } from './parse-bool.pipe';
 import { hungarianZips } from './util/hungarianZips';
 import { agglomerationZips } from './util/budapest.agglomeration';
 import { Response } from 'express';
+import { CustomParseIntPipe } from './parse-int.pipe';
 
 @Controller()
 export class AppController {
@@ -18,17 +12,22 @@ export class AppController {
 
   @Get('/zip/:zipNumber/:quantity/:needsLoading/:carType')
   async calculatePrice(
-    @Param('zipNumber', ParseIntPipe) zipNumber: number,
-    @Param('quantity', ParseIntPipe) quantity: number,
+    @Param('zipNumber', CustomParseIntPipe) zipNumber: number,
+    @Param('quantity', CustomParseIntPipe) quantity: number,
     @Param('needsLoading', ParseBoolPipe) needsLoading: boolean,
-    @Param('carType') carType: string,
+    @Param('carType') carType: 'darus' | 'emelőhátfalas',
     @Res() res: Response,
   ): Promise<Response> {
-    // check if zip is valid, if not, throw 404
-    // TODO: if we know the params, let's add more error handling!
+    // only accept valid ZIPs
     if (!hungarianZips.includes(zipNumber)) {
       throw new NotFoundException(
         'The zipnumber you provided is not a valid Hungarian ZIP code.',
+      );
+    }
+
+    if (carType !== 'darus' && carType !== 'emelőhátfalas') {
+      throw new NotFoundException(
+        'Car type can be only darus or emelőhátfalas.',
       );
     }
 
@@ -48,15 +47,15 @@ export class AppController {
           carType,
           palletPrice,
         );
-      const data = `
-        <p>Looks like we are going to Budapest with fixed prices.</p>
-        <p>Quantity: ${budapestTransferData.quantity}</p>
-        <p>Transfer price: ${budapestTransferData.transfer}</p>
-        <p>Pallet price: ${budapestTransferData.palletPrice}</p>
-        <p>Total: ${budapestTransferData.totalPrice}</p>
-        `;
-      const response = await this.appService.getHtml(data);
-      return res.type('text/html').send(response);
+
+      const data = {
+        quantity: budapestTransferData.quantity,
+        transfer: budapestTransferData.transfer,
+        palletPrice: budapestTransferData.palletPrice,
+        totalPrice: budapestTransferData.totalPrice,
+      };
+
+      return res.json(data);
     }
 
     const distanceKms = await this.appService.calculateDistance(zipNumber);
@@ -72,15 +71,16 @@ export class AppController {
 
     const totalPrice = palletPrice + transferPrice;
 
-    const dynamicData = `<p>Distance in kilometers: ${distanceKms}</p>
-    <p>Base price per kilometer: ${basePricePerKm}</p>
-    <p>Loading price per kilometer: ${loadingPricePerKm}</p>
-    <p>Total price per kilometer: ${totalPricePerKm}</p>
-    <p>Transfer price: ${transferPrice}</p>
-    <p>Pallet price: ${palletPrice}</p>
-    <p>Total price: ${totalPrice}</p>`;
+    const jsonData = {
+      distanceKms,
+      basePricePerKm,
+      loadingPricePerKm,
+      totalPricePerKm,
+      transferPrice,
+      palletPrice,
+      totalPrice,
+    };
 
-    const response = await this.appService.getHtml(dynamicData);
-    return res.type('text/html').send(response);
+    return res.json(jsonData);
   }
 }

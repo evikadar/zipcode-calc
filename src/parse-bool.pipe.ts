@@ -8,7 +8,9 @@ export class ParseBoolPipe implements PipeTransform<string, boolean> {
     } else if (value.toLowerCase() === 'false') {
       return false;
     } else {
-      throw new BadRequestException('Invalid boolean value');
+      throw new BadRequestException(
+        'The true/false param in the URL is not valid. We accept true or false.',
+      );
     }
   }
 }

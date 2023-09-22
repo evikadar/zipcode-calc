@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
@@ -18,27 +18,33 @@ export class AppService {
   async findDistanceTo(zipCode: number): Promise<RouteInterface> {
     const googleRouteApiKey =
       this.configService.get<string>('GOOGLE_ROUTE_API');
-    const { data } = await firstValueFrom(
-      this.httpService
-        .post<RouteInterface>(
-          `https://routes.googleapis.com/directions/v2:computeRoutes?key=${googleRouteApiKey}&$fields=routes.distanceMeters`,
-          {
-            origin: {
-              address: '6088 Magyarország',
+
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService
+          .post<RouteInterface>(
+            `https://routes.googleapis.com/directions/v2:computeRoutes?key=${googleRouteApiKey}&$fields=routes.distanceMeters`,
+            {
+              origin: {
+                address: '6088 Magyarország',
+              },
+              destination: {
+                address: `${zipCode.toString()} Magyarország`,
+              },
             },
-            destination: {
-              address: `${zipCode.toString()} Magyarország`,
-            },
-          },
-        )
-        .pipe(
-          catchError((error: AxiosError) => {
-            console.log(error);
-            throw 'An error happened!';
-          }),
-        ),
-    );
-    return data;
+          )
+          .pipe(
+            catchError((error: AxiosError) => {
+              console.log(error);
+              throw new BadRequestException('Unable to calculate distance.');
+            }),
+          ),
+      );
+      return data;
+    } catch (error) {
+      console.error(error);
+      throw new BadRequestException('Unable to calculate distance.');
+    }
   }
 
   async getPalletPrice(
@@ -128,21 +134,5 @@ export class AppService {
       (await this.findDistanceTo(zipNumber)).routes[0].distanceMeters + 5;
     const distanceKms = Math.floor(distanceMeters / 1000) * 2;
     return distanceKms;
-  }
-
-  async getHtml(data: string): Promise<string> {
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-          <title>Grass Transfer Price Calculation</title>
-      </head>
-      <body>
-          <h1>Let's calculate prices!</h1>
-          ${data}
-      </body>
-      </html>
-    `;
-    return htmlContent;
   }
 }
