@@ -1,23 +1,27 @@
-import { Controller, Get, NotFoundException, Param, Res } from '@nestjs/common';
+import { Body, Controller, NotFoundException, Post, Res } from '@nestjs/common';
 import { AppService } from './app.service';
-import { ParseBoolPipe } from './parse-bool.pipe';
 import { hungarianZips } from './util/hungarianZips';
 import { agglomerationZips } from './util/budapest.agglomeration';
 import { Response } from 'express';
-import { CustomParseIntPipe } from './parse-int.pipe';
+
+class CalculatePriceDto {
+  zipNumber: number;
+  quantity: number;
+  needsLoading: boolean;
+  grassType: number; // 1: SPORT, 2: MEDITERRAN, 3: ELITE
+}
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Get('/zip/:zipNumber/:quantity/:needsLoading/:grassType')
+  @Post('/')
   async calculatePrice(
-    @Param('zipNumber', CustomParseIntPipe) zipNumber: number,
-    @Param('quantity', CustomParseIntPipe) quantity: number,
-    @Param('needsLoading', ParseBoolPipe) needsLoading: boolean,
-    @Param('grassType') grassType: number, // 1: SPORT, 2: MEDITERRAN, 3: ELITE
+    @Body() calculatePriceDto: CalculatePriceDto,
     @Res() res: Response,
   ): Promise<Response> {
+    const { zipNumber, quantity, needsLoading, grassType } = calculatePriceDto;
+
     // only accept valid ZIPs
     if (!hungarianZips.includes(zipNumber)) {
       throw new NotFoundException(
