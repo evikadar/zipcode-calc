@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
-import { RouteInterface } from './route.interface';
+import { Prices, RouteInterface } from './route.interface';
 import { ConfigService } from '@nestjs/config';
 import { priceList } from './util/budapest.prices';
 import { m0Zips } from './util/budapest.agglomeration';
@@ -78,18 +78,7 @@ export class AppService {
     }
   }
 
-  async getFeeToBudapest(quantity: number, carType: string): Promise<number> {
-    // todo: get the actual param for cartype and do error handling for everything else
-    if (carType === 'darus') {
-      if (quantity <= 320) {
-        return 135000;
-      } else if (quantity <= 350) {
-        return 142500;
-      } else {
-        return 150000;
-      }
-    }
-
+  async getFeeToBudapest(quantity: number): Promise<number> {
     const { upperValues } = priceList;
 
     let selectedUpper = 0;
@@ -105,7 +94,6 @@ export class AppService {
 
   async getTransferDataToBudapest(
     quantity: number,
-    carType: string,
     palletPrice: number,
   ): Promise<{
     quantity: number;
@@ -113,7 +101,7 @@ export class AppService {
     palletPrice: number;
     totalPrice: number;
   }> {
-    const budapestFee = await this.getFeeToBudapest(quantity, carType);
+    const budapestFee = await this.getFeeToBudapest(quantity);
     const totalPrice = budapestFee + palletPrice;
     const result = {
       quantity,
@@ -134,5 +122,42 @@ export class AppService {
       (await this.findDistanceTo(zipNumber)).routes[0].distanceMeters + 5;
     const distanceKms = Math.floor(distanceMeters / 1000) * 2;
     return distanceKms;
+  }
+
+  async getProductPrice(quantity: number, grassType: number): Promise<number> {
+    const prices: Prices = {
+      1: {
+        '1-200': 1788,
+        '201-400': 1716,
+        '400+': 1644,
+      },
+      2: {
+        '1-200': 1788,
+        '201-400': 1716,
+        '400+': 1644,
+      },
+      3: {
+        '1-200': 1945,
+        '201-400': 1873,
+        '400+': 1801,
+      },
+    };
+
+    let rangeKey: string;
+    if (quantity <= 200) {
+      rangeKey = '1-200';
+    } else if (quantity <= 400) {
+      rangeKey = '201-400';
+    } else {
+      rangeKey = '400+';
+    }
+
+    const productPrices = prices[grassType];
+    if (!productPrices) {
+      return null;
+    }
+
+    const pricePerSquareMeter = productPrices[rangeKey];
+    return pricePerSquareMeter * quantity;
   }
 }

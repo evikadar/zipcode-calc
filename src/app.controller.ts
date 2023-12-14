@@ -10,12 +10,12 @@ import { CustomParseIntPipe } from './parse-int.pipe';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Get('/zip/:zipNumber/:quantity/:needsLoading/:carType')
+  @Get('/zip/:zipNumber/:quantity/:needsLoading/:grassType')
   async calculatePrice(
     @Param('zipNumber', CustomParseIntPipe) zipNumber: number,
     @Param('quantity', CustomParseIntPipe) quantity: number,
     @Param('needsLoading', ParseBoolPipe) needsLoading: boolean,
-    @Param('carType') carType: 'darus' | 'emelőhátfalas',
+    @Param('grassType') grassType: number, // 1: SPORT, 2: MEDITERRAN, 3: ELITE
     @Res() res: Response,
   ): Promise<Response> {
     // only accept valid ZIPs
@@ -25,11 +25,16 @@ export class AppController {
       );
     }
 
-    if (carType !== 'darus' && carType !== 'emelőhátfalas') {
+    if (grassType != 1 && grassType != 2 && grassType != 3) {
       throw new NotFoundException(
-        'Car type can be only darus or emelőhátfalas.',
+        `Grass type ${grassType} is invalid. Accepted values are 1, 2 and 3.`,
       );
     }
+
+    const productPrice = await this.appService.getProductPrice(
+      quantity,
+      grassType,
+    );
 
     const palletPrice = await this.appService.getPalletPrice(
       quantity,
@@ -42,17 +47,15 @@ export class AppController {
       agglomerationZips.includes(zipNumber);
     if (transferIsToBudapest) {
       const budapestTransferData =
-        await this.appService.getTransferDataToBudapest(
-          quantity,
-          carType,
-          palletPrice,
-        );
+        await this.appService.getTransferDataToBudapest(quantity, palletPrice);
 
       const data = {
         quantity: budapestTransferData.quantity,
         transfer: budapestTransferData.transfer,
+        productPrice,
         palletPrice: budapestTransferData.palletPrice,
-        totalPrice: budapestTransferData.totalPrice,
+        transferPrice: budapestTransferData.totalPrice,
+        totalPrice: productPrice + budapestTransferData.totalPrice,
       };
 
       return res.json(data);
@@ -69,7 +72,7 @@ export class AppController {
     const totalPricePerKm = basePricePerKm + loadingPricePerKm;
     const transferPrice = totalPricePerKm * distanceKms;
 
-    const totalPrice = palletPrice + transferPrice;
+    const totalPrice = palletPrice + transferPrice + productPrice;
 
     const jsonData = {
       distanceKms,
@@ -78,6 +81,7 @@ export class AppController {
       totalPricePerKm,
       transferPrice,
       palletPrice,
+      productPrice,
       totalPrice,
     };
 
