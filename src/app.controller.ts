@@ -22,6 +22,18 @@ export class AppController {
   ): Promise<Response> {
     const { zipNumber, quantity, needsLoading, grassType } = calculatePriceDto;
 
+    if (needsLoading !== false && needsLoading !== true) {
+      throw new NotFoundException(
+        `From the request body for loading I got ${needsLoading}. Accepted values are true or false as booleans (not strings).`,
+      );
+    }
+
+    if (quantity > 500) {
+      throw new NotFoundException(
+        `The amount you requested ${quantity}m2, is more than 500m2. Please request a customized offer.`,
+      );
+    }
+
     // only accept valid ZIPs
     if (!hungarianZips.includes(zipNumber)) {
       throw new NotFoundException(
