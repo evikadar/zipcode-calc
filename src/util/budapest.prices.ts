@@ -5,7 +5,7 @@ export class PriceRangeDto {
 export const priceList: PriceRangeDto = {
   upperValues: {
     40: 29800,
-    50: 35550,
+    50: 37000,
     60: 36000,
     70: 42000,
     80: 45200,
