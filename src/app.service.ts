@@ -6,6 +6,13 @@ import { Prices, RouteInterface } from './route.interface';
 import { ConfigService } from '@nestjs/config';
 import { priceList } from './util/budapest.prices';
 import { m0Zips } from './util/budapest.agglomeration';
+import {
+  basePricePerKm,
+  pricePerPallet,
+  prices,
+  transferPriceFrom121To400,
+  transferPriceFrom401To500,
+} from './util/constants';
 
 @Injectable()
 export class AppService {
@@ -51,7 +58,6 @@ export class AppService {
     quantity: number,
     needsLoading: boolean,
   ): Promise<number> {
-    const pricePerPallet = 3300;
     if (quantity <= 120 && needsLoading === false) {
       return 0;
     } else {
@@ -73,7 +79,10 @@ export class AppService {
       console.log('no loading fee');
       return 0;
     } else {
-      const loadingPerKm = quantity <= 400 ? 280 : 340;
+      const loadingPerKm =
+        quantity <= 400
+          ? transferPriceFrom121To400 - basePricePerKm
+          : transferPriceFrom401To500 - basePricePerKm;
       return loadingPerKm;
     }
   }
@@ -125,24 +134,6 @@ export class AppService {
   }
 
   async getProductPrice(quantity: number, grassType: number): Promise<number> {
-    const prices: Prices = {
-      1: {
-        '1-200': 1925,
-        '201-400': 1866,
-        '400+': 1827,
-      },
-      2: {
-        '1-200': 1925,
-        '201-400': 1866,
-        '400+': 1827,
-      },
-      3: {
-        '1-200': 1925,
-        '201-400': 1866,
-        '400+': 1827,
-      },
-    };
-
     let rangeKey: string;
     if (quantity <= 200) {
       rangeKey = '1-200';

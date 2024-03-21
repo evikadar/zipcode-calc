@@ -10,12 +10,13 @@ import { AppService } from './app.service';
 import { hungarianZips } from './util/hungarianZips';
 import { agglomerationZips } from './util/budapest.agglomeration';
 import { Response } from 'express';
+import { basePricePerKm } from './util/constants';
 
 class CalculatePriceDto {
   zipNumber: number;
   quantity: number;
   needsLoading: boolean;
-  grassType: number; // 1: SPORT, 2: MEDITERRAN, 3: ELITE
+  grassType: number; // 1: SPORT, 2: MEDITERRAN, 3: REGEN
 }
 
 @Controller()
@@ -86,7 +87,6 @@ export class AppController {
 
     const distanceKms = await this.appService.calculateDistance(zipNumber);
 
-    const basePricePerKm = 350;
     const loadingPricePerKm = await this.appService.getLoadingPricePerKm(
       quantity,
       needsLoading,
