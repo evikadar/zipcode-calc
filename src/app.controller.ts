@@ -93,9 +93,9 @@ export class AppController {
     );
 
     const totalPricePerKm = basePricePerKm + loadingPricePerKm;
-    const transferPrice = totalPricePerKm * distanceKms;
+    const transferPrice = (totalPricePerKm * distanceKms) + palletPrice;
 
-    const totalPrice = palletPrice + transferPrice + productPrice;
+    const totalPrice = transferPrice + productPrice;
 
     const jsonData = {
       distanceKms,
