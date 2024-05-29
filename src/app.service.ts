@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
-import { Prices, RouteInterface } from './route.interface';
+import { RouteInterface } from './route.interface';
 import { ConfigService } from '@nestjs/config';
 import { priceList } from './util/budapest.prices';
 import { m0Zips } from './util/budapest.agglomeration';

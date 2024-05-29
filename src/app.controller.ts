@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  NotFoundException,
-  Post,
-  Res,
-} from '@nestjs/common';
+import { Body, Controller, NotFoundException, Post, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { hungarianZips } from './util/hungarianZips';
 import { agglomerationZips } from './util/budapest.agglomeration';
@@ -93,7 +86,7 @@ export class AppController {
     );
 
     const totalPricePerKm = basePricePerKm + loadingPricePerKm;
-    const transferPrice = (totalPricePerKm * distanceKms) + palletPrice;
+    const transferPrice = totalPricePerKm * distanceKms + palletPrice;
 
     const totalPrice = transferPrice + productPrice;
 
