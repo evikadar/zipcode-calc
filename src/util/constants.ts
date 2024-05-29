@@ -3,7 +3,7 @@ import { Prices } from 'src/route.interface';
 export const basePricePerKm = 370;
 export const transferPriceFrom121To400 = 630;
 export const transferPriceFrom401To500 = 670;
-export const pricePerPallet = 3300;
+export const pricePerPallet = 3500;
 
 // 1: SPORT, 2: MEDITERRAN, 3: REGEN
 export const prices: Prices = {

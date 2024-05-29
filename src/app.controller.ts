@@ -36,7 +36,7 @@ export class AppController {
       );
     }
 
-    if (quantity > 500) {
+    if (quantity > 550) {
       throw new NotFoundException(
         `The amount you requested ${quantity}m2, is more than 500m2. Please request a customized offer.`,
       );
@@ -93,9 +93,9 @@ export class AppController {
     );
 
     const totalPricePerKm = basePricePerKm + loadingPricePerKm;
-    const transferPrice = totalPricePerKm * distanceKms;
+    const transferPrice = (totalPricePerKm * distanceKms) + palletPrice;
 
-    const totalPrice = palletPrice + transferPrice + productPrice;
+    const totalPrice = transferPrice + productPrice;
 
     const jsonData = {
       distanceKms,
