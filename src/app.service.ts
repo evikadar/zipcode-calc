@@ -8,6 +8,7 @@ import { priceList } from './util/budapest.prices';
 import { m0Zips } from './util/budapest.agglomeration';
 import {
   basePricePerKm,
+  minTransferPrice,
   pricePerPallet,
   prices,
   transferPriceFrom121To400,
@@ -99,6 +100,17 @@ export class AppService {
     }
 
     return upperValues[selectedUpper] || 0;
+  }
+
+  async getTransferPrice(
+    needsLoading: boolean,
+    calculatedTransferPrice: number,
+  ): Promise<number> {
+    if (!needsLoading && calculatedTransferPrice < minTransferPrice) {
+      return minTransferPrice;
+    } else {
+      return calculatedTransferPrice;
+    }
   }
 
   async getTransferDataToBudapest(
