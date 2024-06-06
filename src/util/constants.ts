@@ -4,8 +4,9 @@ export const basePricePerKm = 370;
 export const transferPriceFrom121To400 = 630;
 export const transferPriceFrom401To500 = 670;
 export const pricePerPallet = 3500;
-// if there is no loading, the transfer price must be at least this much
-export const minTransferPrice = 15750;
+// the transfer price must be at least this much with and without loading
+export const minTransferPriceWithoutLoading = 15750;
+export const minTransferPriceWithLoading = 25000;
 
 // 1: SPORT, 2: MEDITERRAN, 3: REGEN
 export const prices: Prices = {
