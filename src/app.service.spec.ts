@@ -9,7 +9,6 @@ import { BadRequestException } from '@nestjs/common';
 describe('AppService', () => {
   let service: AppService;
   let httpService: HttpService;
-  let configService: ConfigService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -32,7 +31,6 @@ describe('AppService', () => {
 
     service = module.get<AppService>(AppService);
     httpService = module.get<HttpService>(HttpService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   describe('getPalletPrice', () => {
