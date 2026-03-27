@@ -15,10 +15,45 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('/ (POST) - should calculate price for valid Budapest ZIP', () => {
     return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+      .post('/')
+      .send({
+        zipNumber: 1011,
+        quantity: 100,
+        needsLoading: false,
+        grassType: 1,
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body).toHaveProperty('productPrice');
+        expect(res.body).toHaveProperty('transferPrice');
+        expect(res.body).toHaveProperty('palletPrice');
+        expect(res.body).toHaveProperty('totalPrice');
+      });
+  });
+
+  it('/ (POST) - should return 404 for invalid ZIP code', () => {
+    return request(app.getHttpServer())
+      .post('/')
+      .send({
+        zipNumber: 9999,
+        quantity: 100,
+        needsLoading: false,
+        grassType: 1,
+      })
+      .expect(404);
+  });
+
+  it('/ (POST) - should return 404 for quantity exceeding 550', () => {
+    return request(app.getHttpServer())
+      .post('/')
+      .send({
+        zipNumber: 1011,
+        quantity: 551,
+        needsLoading: false,
+        grassType: 1,
+      })
+      .expect(404);
   });
 });
