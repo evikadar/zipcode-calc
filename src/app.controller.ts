@@ -29,6 +29,12 @@ export class AppController {
       );
     }
 
+    if (quantity <= 0) {
+      throw new NotFoundException(
+        `The quantity must be greater than 0. You provided ${quantity}m2.`,
+      );
+    }
+
     if (quantity > 550) {
       throw new NotFoundException(
         `The amount you requested ${quantity}m2, is more than 500m2. Please request a customized offer.`,
