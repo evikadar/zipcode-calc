@@ -64,7 +64,7 @@ export class AppService {
       return 0;
     } else {
       let nrOfPalletts;
-      if (nrOfPalletts <= 55) {
+      if (quantity <= 55) {
         nrOfPalletts = 1;
       } else {
         nrOfPalletts = Math.ceil((quantity - 10) / 50);
@@ -116,6 +116,7 @@ export class AppService {
       needsLoading &&
       calculatedTransferPrice < minTransferPriceWithLoading
     ) {
+      return minTransferPriceWithLoading;
     } else {
       return calculatedTransferPrice;
     }

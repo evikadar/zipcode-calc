@@ -5,6 +5,15 @@ import { AppService } from './app.service';
 import { of, throwError } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { BadRequestException } from '@nestjs/common';
+import {
+  prices,
+  pricePerPallet,
+  minTransferPriceWithoutLoading,
+  minTransferPriceWithLoading,
+  transferPriceFrom121To400,
+  basePricePerKm,
+  transferPriceFrom401To500,
+} from './util/constants';
 
 describe('AppService', () => {
   let service: AppService;
@@ -46,7 +55,7 @@ describe('AppService', () => {
 
     it('should calculate pallet price for quantity <= 55 with loading', async () => {
       const result = await service.getPalletPrice(50, true);
-      expect(result).toBe(5000); // 1 pallet * 5000
+      expect(result).toBe(pricePerPallet); // 1 pallet * pricePerPallet
     });
 
     it('should calculate pallet price for quantity > 120 without loading', async () => {
@@ -56,34 +65,34 @@ describe('AppService', () => {
 
     it('should calculate correct number of pallets for larger quantities', async () => {
       const result = await service.getPalletPrice(200, true);
-      expect(result).toBeGreaterThan(5000); // More than 1 pallet
+      expect(result).toBeGreaterThan(pricePerPallet); // More than 1 pallet
     });
   });
 
   describe('getProductPrice', () => {
     it('should calculate price for grass type 1 in range 1-200', async () => {
       const result = await service.getProductPrice(100, 1);
-      expect(result).toBe(100 * 2028); // 202,800
+      expect(result).toBe(100 * prices[1]['1-200']);
     });
 
     it('should calculate price for grass type 1 in range 201-400', async () => {
       const result = await service.getProductPrice(300, 1);
-      expect(result).toBe(300 * 1969); // 590,700
+      expect(result).toBe(300 * prices[1]['201-400']);
     });
 
     it('should calculate price for grass type 1 in range 400+', async () => {
       const result = await service.getProductPrice(450, 1);
-      expect(result).toBe(450 * 1941); // 873,450
+      expect(result).toBe(450 * prices[1]['400+']);
     });
 
     it('should calculate price for grass type 2', async () => {
       const result = await service.getProductPrice(100, 2);
-      expect(result).toBe(100 * 2028);
+      expect(result).toBe(100 * prices[2]['1-200']);
     });
 
     it('should calculate price for grass type 3', async () => {
       const result = await service.getProductPrice(100, 3);
-      expect(result).toBe(100 * 2028);
+      expect(result).toBe(100 * prices[3]['1-200']);
     });
 
     it('should return null for invalid grass type', async () => {
@@ -94,15 +103,15 @@ describe('AppService', () => {
     it('should handle boundary at 200 m²', async () => {
       const result200 = await service.getProductPrice(200, 1);
       const result201 = await service.getProductPrice(201, 1);
-      expect(result200).toBe(200 * 2028);
-      expect(result201).toBe(201 * 1969);
+      expect(result200).toBe(200 * prices[1]['1-200']);
+      expect(result201).toBe(201 * prices[1]['201-400']);
     });
 
     it('should handle boundary at 400 m²', async () => {
       const result400 = await service.getProductPrice(400, 1);
       const result401 = await service.getProductPrice(401, 1);
-      expect(result400).toBe(400 * 1969);
-      expect(result401).toBe(401 * 1941);
+      expect(result400).toBe(400 * prices[1]['201-400']);
+      expect(result401).toBe(401 * prices[1]['400+']);
     });
   });
 
@@ -114,24 +123,24 @@ describe('AppService', () => {
 
     it('should return loading price for quantity <= 400 with loading', async () => {
       const result = await service.getLoadingPricePerKm(200, true);
-      expect(result).toBe(800 - 500); // transferPriceFrom121To400 - basePricePerKm = 300
+      expect(result).toBe(transferPriceFrom121To400 - basePricePerKm);
     });
 
     it('should return loading price for quantity > 400 with loading', async () => {
       const result = await service.getLoadingPricePerKm(450, true);
-      expect(result).toBe(800 - 500); // transferPriceFrom401To500 - basePricePerKm = 300
+      expect(result).toBe(transferPriceFrom401To500 - basePricePerKm);
     });
 
     it('should return loading price for quantity > 120 without loading', async () => {
       const result = await service.getLoadingPricePerKm(150, false);
-      expect(result).toBe(300);
+      expect(result).toBe(transferPriceFrom121To400 - basePricePerKm);
     });
   });
 
   describe('getTransferPrice', () => {
     it('should return minimum price without loading when calculated price is below minimum', async () => {
       const result = await service.getTransferPrice(false, 10000);
-      expect(result).toBe(20000); // minTransferPriceWithoutLoading
+      expect(result).toBe(minTransferPriceWithoutLoading);
     });
 
     it('should return calculated price without loading when above minimum', async () => {
@@ -145,8 +154,16 @@ describe('AppService', () => {
     });
 
     it('should handle edge case at minimum without loading', async () => {
-      const result = await service.getTransferPrice(false, 20000);
-      expect(result).toBe(20000);
+      const result = await service.getTransferPrice(
+        false,
+        minTransferPriceWithoutLoading,
+      );
+      expect(result).toBe(minTransferPriceWithoutLoading);
+    });
+
+    it('should return minimum price with loading when calculated price is below minimum', async () => {
+      const result = await service.getTransferPrice(true, 25000);
+      expect(result).toBe(minTransferPriceWithLoading);
     });
   });
 

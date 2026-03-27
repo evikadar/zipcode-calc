@@ -2,6 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import {
+  prices,
+  minTransferPriceWithoutLoading,
+} from './../src/util/constants';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
@@ -31,7 +35,7 @@ describe('AppController (e2e)', () => {
           expect(res.body).toHaveProperty('transferPrice');
           expect(res.body).toHaveProperty('palletPrice');
           expect(res.body).toHaveProperty('totalPrice');
-          expect(res.body.productPrice).toBe(100 * 2028); // 202,800
+          expect(res.body.productPrice).toBe(100 * prices[1]['1-200']);
           expect(res.body.palletPrice).toBe(0); // <= 120 without loading
         });
     });
@@ -47,7 +51,7 @@ describe('AppController (e2e)', () => {
         })
         .expect(201)
         .expect((res) => {
-          expect(res.body.productPrice).toBe(100 * 2028);
+          expect(res.body.productPrice).toBe(100 * prices[2]['1-200']);
         });
     });
 
@@ -62,7 +66,7 @@ describe('AppController (e2e)', () => {
         })
         .expect(201)
         .expect((res) => {
-          expect(res.body.productPrice).toBe(100 * 2028);
+          expect(res.body.productPrice).toBe(100 * prices[3]['1-200']);
         });
     });
 
@@ -77,7 +81,7 @@ describe('AppController (e2e)', () => {
         })
         .expect(201)
         .expect((res) => {
-          expect(res.body.productPrice).toBe(300 * 1969); // Different price tier
+          expect(res.body.productPrice).toBe(300 * prices[1]['201-400']);
         });
     });
 
@@ -92,7 +96,7 @@ describe('AppController (e2e)', () => {
         })
         .expect(201)
         .expect((res) => {
-          expect(res.body.productPrice).toBe(450 * 1941); // Highest tier
+          expect(res.body.productPrice).toBe(450 * prices[1]['400+']);
         });
     });
 
@@ -154,7 +158,7 @@ describe('AppController (e2e)', () => {
         })
         .expect(201)
         .expect((res) => {
-          expect(res.body.productPrice).toBe(200 * 2028);
+          expect(res.body.productPrice).toBe(200 * prices[1]['1-200']);
         });
     });
 
@@ -169,7 +173,7 @@ describe('AppController (e2e)', () => {
         })
         .expect(201)
         .expect((res) => {
-          expect(res.body.productPrice).toBe(400 * 1969);
+          expect(res.body.productPrice).toBe(400 * prices[1]['201-400']);
         });
     });
 
@@ -199,7 +203,7 @@ describe('AppController (e2e)', () => {
         })
         .expect(201)
         .expect((res) => {
-          expect(res.body.productPrice).toBe(2028);
+          expect(res.body.productPrice).toBe(prices[1]['1-200']);
         });
     });
   });
@@ -362,6 +366,184 @@ describe('AppController (e2e)', () => {
         .expect(201)
         .expect((res) => {
           expect(res.body.palletPrice).toBeGreaterThan(0);
+        });
+    });
+  });
+
+  describe('Non-Budapest ZIP codes - M0 cached distances', () => {
+    it('should calculate price for m0 ZIP code 2009 (cached distance 155km)', () => {
+      return request(app.getHttpServer())
+        .post('/')
+        .send({
+          zipNumber: 2009,
+          quantity: 100,
+          needsLoading: false,
+          grassType: 1,
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('productPrice');
+          expect(res.body).toHaveProperty('transferPrice');
+          expect(res.body).toHaveProperty('palletPrice');
+          expect(res.body).toHaveProperty('totalPrice');
+          expect(res.body.productPrice).toBe(100 * prices[1]['1-200']);
+          expect(res.body.transferPrice).toBeGreaterThan(0);
+        });
+    });
+
+    it('should calculate price for m0 ZIP code 2015 (cached distance 164km)', () => {
+      return request(app.getHttpServer())
+        .post('/')
+        .send({
+          zipNumber: 2015,
+          quantity: 200,
+          needsLoading: false,
+          grassType: 2,
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.productPrice).toBe(200 * prices[2]['1-200']);
+          expect(res.body.transferPrice).toBeGreaterThan(0);
+        });
+    });
+
+    it('should calculate price for m0 ZIP code 2028 (cached distance 153km)', () => {
+      return request(app.getHttpServer())
+        .post('/')
+        .send({
+          zipNumber: 2028,
+          quantity: 150,
+          needsLoading: true,
+          grassType: 1,
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.transferPrice).toBeGreaterThan(0);
+          expect(res.body.palletPrice).toBeGreaterThan(0);
+        });
+    });
+  });
+
+  describe('Non-Budapest ZIP codes - Agglomeration', () => {
+    it('should calculate price for agglomeration ZIP code 2000', () => {
+      return request(app.getHttpServer())
+        .post('/')
+        .send({
+          zipNumber: 2000,
+          quantity: 100,
+          needsLoading: false,
+          grassType: 1,
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('productPrice');
+          expect(res.body).toHaveProperty('transferPrice');
+          expect(res.body).toHaveProperty('palletPrice');
+          expect(res.body).toHaveProperty('totalPrice');
+          expect(res.body.productPrice).toBe(100 * prices[1]['1-200']);
+        });
+    });
+
+    it('should calculate price for agglomeration ZIP code 2100', () => {
+      return request(app.getHttpServer())
+        .post('/')
+        .send({
+          zipNumber: 2100,
+          quantity: 250,
+          needsLoading: false,
+          grassType: 3,
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.productPrice).toBe(250 * prices[3]['201-400']);
+        });
+    });
+  });
+
+  describe('Non-Budapest ZIP codes - Regular cities (requires Google Maps API)', () => {
+    it('should calculate price for Debrecen (4000)', () => {
+      return request(app.getHttpServer())
+        .post('/')
+        .send({
+          zipNumber: 4000,
+          quantity: 100,
+          needsLoading: false,
+          grassType: 1,
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('productPrice');
+          expect(res.body).toHaveProperty('transferPrice');
+          expect(res.body).toHaveProperty('palletPrice');
+          expect(res.body).toHaveProperty('totalPrice');
+          expect(res.body.productPrice).toBe(100 * prices[1]['1-200']);
+          expect(res.body.transferPrice).toBeGreaterThan(0);
+        });
+    });
+
+    it('should calculate price for Szeged (6720)', () => {
+      return request(app.getHttpServer())
+        .post('/')
+        .send({
+          zipNumber: 6720,
+          quantity: 150,
+          needsLoading: false,
+          grassType: 2,
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.productPrice).toBe(150 * prices[2]['1-200']);
+          expect(res.body.transferPrice).toBeGreaterThan(0);
+        });
+    });
+
+    it('should calculate price for Pécs (7621)', () => {
+      return request(app.getHttpServer())
+        .post('/')
+        .send({
+          zipNumber: 7621,
+          quantity: 200,
+          needsLoading: true,
+          grassType: 1,
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.productPrice).toBe(200 * prices[1]['1-200']);
+          expect(res.body.transferPrice).toBeGreaterThan(0);
+          expect(res.body.palletPrice).toBeGreaterThan(0);
+        });
+    });
+
+    it('should calculate price for Győr (9021)', () => {
+      return request(app.getHttpServer())
+        .post('/')
+        .send({
+          zipNumber: 9021,
+          quantity: 300,
+          needsLoading: false,
+          grassType: 3,
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.productPrice).toBe(300 * prices[3]['201-400']);
+          expect(res.body.transferPrice).toBeGreaterThan(0);
+        });
+    });
+
+    it('should apply minimum transfer price for short distances', () => {
+      return request(app.getHttpServer())
+        .post('/')
+        .send({
+          zipNumber: 6000,
+          quantity: 100,
+          needsLoading: false,
+          grassType: 1,
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.transferPrice).toBeGreaterThanOrEqual(
+            minTransferPriceWithoutLoading,
+          );
         });
     });
   });
